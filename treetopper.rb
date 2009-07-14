@@ -2,7 +2,6 @@
 
 =begin rdoc
 	* One grammar rule per line.
-	* Production ->
 
 	Todo:
 		* Special directives:
@@ -11,6 +10,8 @@
 			* Inlining.
 			* Including.
 		* Removal of same productions.
+		* Write it using TreeTop itself.
+		* Some command line options.
 =end
 
 class Array
@@ -124,7 +125,7 @@ module Parser
 		grammar = Grammar.new(name)
 		content.each_line do |line|
 			line.strip!
-			next if line == ""
+			next if line == "" or line.match(/^\#.*/)
 			rule, prods = line.split("->")
 			raise Error("Malformed rule.") if rule == line or prods == ""
 			rule.strip
@@ -139,7 +140,7 @@ module Parser
 
 	def self.parse_file(name)
 		File.open(name) do |file|
-			parse(file.read, name)
+			parse(file.read, File.basename(name).split(".")[0])
 		end
 	end
 end
@@ -150,3 +151,5 @@ g = %{
 }
 
 puts Parser.parse(g)
+
+puts Parser.parse_file("examples/dyck.ebnf")
