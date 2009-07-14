@@ -1,0 +1,5 @@
+# Arithmetic grammar.
+additive -> multitive '+' additive | multitive
+multitive -> primary '*' multitive | primary
+primary -> '(' additive ')' | number
+number -> [1-9] [0-9]*

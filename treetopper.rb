@@ -151,5 +151,4 @@ g = %{
 }
 
 puts Parser.parse(g)
-
 puts Parser.parse_file("examples/dyck.ebnf")
