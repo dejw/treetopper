@@ -8,14 +8,11 @@ module Treetopper
 	class Production
 		PREFIX = '    '
 
-		attr_accessor :class_name, :block
-		def initialize(grammar, sequence, options = {})
+		def initialize(grammar, sequence)
 			unless sequence.respond_to? :to_ary
 				sequence = sequence.split(/\s+/)
 			end
 			@sequence = sequence
-			@class_name = options[:class_name]
-			@block = options[:block]
 			@grammar = grammar
 		end
 
@@ -25,11 +22,7 @@ module Treetopper
 					@sequence[i] = @grammar[@sequence[i]].name
 				end
 			end
-			output = @sequence.to_tt
-			raise Error.new("Production < #{output} > can't has both class_name and block attribute") if @class_name and @block
-			output += " <#{@class_name}>" if @class_name
-			output += " {\n\n#{PREFIX}}" if @block
-			PREFIX + output + "\n"
+			PREFIX + @sequence.to_tt + "\n"
 		end
 	end
 
