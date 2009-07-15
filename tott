@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require "lib/treetopper"
+
+=begin rdoc
+	Todo:
+		* Wildcard in paths (e.g. /path/to/files/* )
+		* Special directives:
+			* Inlining.
+			* Including.
+		* Removal of same productions.
+		* Write it using TreeTop itself.
+		* Some command line options.
+			* Convert into Ruby using tt.
+
+	Usage:
+    $ tott file [, file ...]
+    Converts list of files from EBNF grammar format to Treetop format.
+=end
+
+module Treetopper
+	extend self
+
+	def help
+    File.read(__FILE__).match(/(Usage:.+?)=end/m)[1].squeeze(" ")
+  end
+end
+
+if $0 == __FILE__
+	puts Treetopper.help if ARGV.length == 0
+	ARGV.each do |name| begin
+		Treetopper.fail("file #{name} does not exist.") unless File.exists?(name)
+		File.open(name.slice(0, name.rindex(".") || name.length) + ".treetop", "w") do |file|
+			file.write Treetopper::Parser.parse_file(name)
+		end
+	rescue Treetopper::Error => e
+		$stderr.puts "tott: #{e.to_s}"
+	end end
+end
