@@ -55,26 +55,16 @@ With commands listed above, mentioned _arithmetic grammar_ can be rewritten as f
 
 Usage
 -----
-`tott' tool converts a list of files from EBNF grammar format to Treetop format.
+`tott` tool converts a list of files from EBNF grammar format to Treetop format.
 
-    $ tott file [, file ...]
-    
-Features to implement / Ideas
------------------------------
+    $ tott file [, file ...] [options]
+    Converts list of files from EBNF grammar format to Treetop format.
 
-There are a lot things to do and some of them are listed below:
-
-* __Define whole TreeTop syntax as a pure Ruby code__ (as a patch to TreeTop maybe?).
-* Some command line options.
-* Special directives which can extend grammar functionality:
-  * Grammar name change.
-  * Aliases (for long named rules).
-  * Inlining (for short productions).
-  * Including (handle feature of TreeTop).
-* Removal of similar productions (?)
-* Simple left recursion prevention.
-* Write it using TreeTop itself.
-* Validate the input. (?)
+    Available options are:
+      --nott    Deletes .treetop files after conversion. (Useful with --rb option)
+      --ruby    Converts generated .treetop files into Ruby source using tt.
+      --out     Prints the output to the standard output rather than a file.
+      --help    Prints this help message.
 
 
 [TreeTop]: http://github.com/nathansobo/treetop

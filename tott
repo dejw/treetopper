@@ -10,9 +10,6 @@ require "lib/treetopper"
 			* Including.
 		* Removal of same productions.
 		* Write it using TreeTop itself.
-		* Some command line options.
-			* Convert into Ruby using tt.
-			* Debug output.
 
   Usage: tott file [, file ...] [options]
   Converts list of files from EBNF grammar format to Treetop format.
