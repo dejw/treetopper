@@ -8,7 +8,7 @@ _Note: It does not validate the input, it only helps to write TreeTop grammars f
 Grammar syntax
 --------------
 
-Grammars accepted by TreeTopper are very similar to EBNF grammars. For now in grammars You can use only comments and rule definitions (this will change in the future).
+Grammars accepted by TreeTopper are very similar to EBNF grammars. For now in grammars You can use comments, rule definitions and some special commands.
 
 Comments are lines that starts with # character and these lines are skipped. TreeTopper handles only full-line comments, thus input like:
 
@@ -29,11 +29,36 @@ Simple example of grammar is listed below:
 
 It is borrowed strictly from [TreeTop Home Page][] and TreeTopper generates output similar to one listed there.
 
-As a library
-------------
+Special commands
+------------------
 
-TreeTopper can be used also as a library. It redefines some standard classes, adding a piece of code for easier work with grammar parser. I
+A command is a line which starts with `:`. Arguments are separated by a space. First argument is a command name. For now two special commands are allowed. 
 
+### `:grammar name`
+Changes the grammar name, especially useful in in-line Ruby grammars.
+
+### `:alias rule name`
+Changes the name of rule in the grammar, especially useful for long-named rules.
+
+With commands listed above, mentioned _arithmetic grammar_ can be rewritten as follows:
+
+    # Arithmetic grammar.
+    :grammar Arithmetic
+    :alias E additive
+    :alias T multitive
+    :alias F prime
+    :alias N number
+    E ->  T '+' E  | T
+    T ->  F '*' T  | F
+    F -> '(' E ')' | N
+    N -> [1-9] [0-9]*
+
+Usage
+-----
+`tott' tool converts a list of files from EBNF grammar format to Treetop format.
+
+    $ tott file [, file ...]
+    
 Features to implement / Ideas
 -----------------------------
 
