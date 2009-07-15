@@ -14,7 +14,7 @@ class Array
 	end
 
 	def to_tt
-		@sequence.join_with(:to_tt, " ")
+		self.join_with(:to_tt, " ")
 	end
 end
 
