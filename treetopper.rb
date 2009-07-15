@@ -5,8 +5,6 @@
 
 	Todo:
 		* Special directives:
-			* grammar :name	(the file name is the grammar name for default)
-			* Aliases.
 			* Inlining.
 			* Including.
 		* Removal of same productions.
@@ -14,57 +12,17 @@
 		* Some command line options.
 =end
 
-class Array
-	def join_with(method, pattern = "")
-		return join(pattern) unless method
-		return "" if self.length == 0
-		output = self[0].send(method)
-		for i in (1...self.length)
-			output += pattern + self[i].send(method)
-		end
-		output
-	end
-end
+require "lib/extensions"
 
-class Hash
-	def join_with(method, pattern = "")
-		self.values.join_with(method, pattern)
+class Error < StandardError
+	attr_reader :line
+	def initialize(msg = nil, line = nil)
+		super(msg)
+		@line = line
 	end
-end
 
-class Error < Exception
-end
-
-class Symbol
-	def to_tt
-		self.to_s
-	end
-end
-
-class String
-	def to_tt
-		"'#{self}'"
-	end
-end
-
-class Numeric
-	def to_tt
-		"'#{self.to_s}'"
-	end
-end
-
-class Array
-	def to_tt
-		@sequence.join_with(:to_tt, " ")
-	end
-end
-
-class Echo
-	def initialize(value)
-		@value = value
-	end
-	def to_tt
-		@value
+	def to_s
+		(@line ? "at line #{@line} " : "") + super
 	end
 end
 
@@ -73,7 +31,6 @@ class Production
 
 	attr_accessor :class_name, :block
 	def initialize(sequence, options = {})
-		sequence = Echo.new(sequence) unless sequence.respond_to? :to_ary
 		@sequence = sequence
 		@class_name = options[:class_name]
 		@block = options[:block]
@@ -106,13 +63,23 @@ class Rule
 end
 
 class Grammar
+	attr_accessor :name
 	def initialize(name = nil)
-		@grammar_name = name || "Grammar"
+		@name = name || "Grammar"
 		@rules = {}
+		@aliases = {}
+	end
+
+	def register_alias(number, rule, name)
+		@aliases[rule] = { :line => number, :name => name }
 	end
 
 	def to_tt
-		"grammar #{@grammar_name}\n" + @rules.join_with(:to_tt, "\n") + "end"
+		@aliases.each do |rule, value|
+			raise Error.new("alias: rule '#{rule}' does not exist", value[:line]) unless @rules.has_key?(rule)
+			@rules[rule].name = value[:name]
+		end
+		"grammar #{@name}\n" + @rules.join_with(:to_tt, "\n") + "end"
 	end
 
 	def [](rule)
@@ -120,35 +87,88 @@ class Grammar
 	end
 end
 
-module Parser
-	def self.parse(content, name = nil)
-		grammar = Grammar.new(name)
-		content.each_line do |line|
-			line.strip!
-			next if line == "" or line.match(/^\#.*/)
-			rule, prods = line.split("->")
-			raise Error("Malformed rule.") if rule == line or prods == ""
-			rule.strip
-			prods.split("|").each do |p|
-				p.strip!
-				raise Error("Production cannot be empty.") if p == ""
-				grammar[rule].add(p.squeeze(" "))
-			end
-		end
-		grammar.to_tt
+class Parser
+	def self.instance
+		@parser ||= Parser.new
 	end
 
-	def self.parse_file(name)
-		File.open(name) do |file|
-			parse(file.read, File.basename(name).split(".")[0])
+	def self.parse(content, name = nil)
+		instance.parse(content, name)
+	end
+
+	def self.parse_file(file)
+		instance.parse_file(file)
+	end
+
+	def parse(content, name = nil)
+		@number = 1
+		@grammar = Grammar.new(name)
+		content.each_line do |line|
+			parse_line(line.strip)
+			@number += 1
 		end
+		@grammar.to_tt
+	rescue Error => e
+		raise e if e.line
+		raise Error.new("at line #{number}: " + e.to_s)
+	end
+
+	def parse_file(name)
+		File.open(name) do |file| begin
+			parse(file.read, File.basename(name).split(".")[0])
+		rescue Error => e
+			raise Error.new("in file #{name} " + e.to_s)
+		end end
+	end
+private
+	def parse_line(line)
+		case line
+		when "" then
+		when /^\#.*/ then
+		when /^:(.+)/ then
+			parse_command($1.strip.split(/\s+/))
+		when /^(.+)\s*->\s*(.+)/ then
+			rule = $1.strip
+			$2.split("|").each do |p|
+				@grammar[rule].add(p.strip.squeeze(" "))
+			end
+		else
+			fail("malformed rule")
+		end
+	end
+
+	def parse_command(args)
+		case args[0]
+		when "grammar"
+			assert(args.length == 2, "grammar: need one argument")
+			@grammar.name = args[1]
+		when "alias"
+			assert(args.length == 3, "alias: need two arguments")
+			@grammar.register_alias(@number, args[1], args[2])
+		else
+			fail("bad command name")
+		end
+	end
+
+	def fail(msg)
+		raise Error.new(msg)
+	end
+
+	def assert(expr, msg)
+		fail(msg) unless expr
 	end
 end
 
 g = %{
+	:grammar Simple
+	:alias S myRule
 	S -> a | b
 	S -> b
 }
 
-puts Parser.parse(g)
-puts Parser.parse_file("examples/dyck.ebnf")
+begin
+	puts Parser.parse(g)
+	puts Parser.parse_file("examples/dyck.ebnf")
+rescue Error => e
+	$stderr.puts "error " + e.message
+end

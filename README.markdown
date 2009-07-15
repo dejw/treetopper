@@ -39,7 +39,7 @@ Features to implement / Ideas
 
 There are a lot things to do and some of them are listed below:
 
-* __Define whole TreeTop grammar as a pure Ruby code__ (as a patch to TreeTop maybe?).
+* __Define whole TreeTop syntax as a pure Ruby code__ (as a patch to TreeTop maybe?).
 * Some command line options.
 * Special directives which can extend grammar functionality:
   * Grammar name change.
