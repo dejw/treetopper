@@ -28,4 +28,14 @@ class String
 	def to_tt
 		"#{self}"
 	end
+
+	# Checks weather String starts with other string and returns the rest
+	# of it  if true. Returns nil otherwise.
+	def start_with?(string)
+		if self.index(string) == 0
+			self.slice(string.length...self.length)
+		else
+			nil
+		end
+	end
 end

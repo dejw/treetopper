@@ -12,27 +12,84 @@ require "lib/treetopper"
 		* Write it using TreeTop itself.
 		* Some command line options.
 			* Convert into Ruby using tt.
+			* Debug output.
 
-	Usage:
-    $ tott file [, file ...]
-    Converts list of files from EBNF grammar format to Treetop format.
+  Usage: tott file [, file ...] [options]
+  Converts list of files from EBNF grammar format to Treetop format.
+
+  Available options are:
+    --nott    Deletes .treetop files after conversion. (Useful with --rb option)
+    --ruby    Converts generated .treetop files into Ruby source using tt.
+    --out     Prints the output to the standard output rather than a file.
+    --help    Prints this help message.
 =end
+
+require "open3"
+include Open3
+
+module Shell
+	def self.run(command, *args)
+		result = nil
+		popen3("#{command} #{args.join(" ")}") do |input, output, error|
+      yield input if block_given?
+      result = output.readlines if error.readlines.empty?
+		end
+		result
+	end
+end
 
 module Treetopper
 	extend self
 
 	def help
-    File.read(__FILE__).match(/(Usage:.+?)=end/m)[1].squeeze(" ")
+    "  " + File.read(__FILE__).match(/(Usage:.+?)=end/m)[1]
   end
 end
 
 if $0 == __FILE__
-	puts Treetopper.help if ARGV.length == 0
-	ARGV.each do |name| begin
-		Treetopper.fail("file #{name} does not exist.") unless File.exists?(name)
-		File.open(name.slice(0, name.rindex(".") || name.length) + ".treetop", "w") do |file|
-			file.write Treetopper::Parser.parse_file(name)
+	ruby = false
+	nott = false
+	out = false
+	o = false
+
+	options, files = ARGV.partition {|item| item.start_with?("--") or item.start_with?("--") }
+	puts Treetopper.help if files.length == 0
+	options.map {|option| option.slice(2...option.length) }.each do |option|
+		case option
+		when "help"
+			puts Treetopper.help
+			exit(0)
+		when "ruby" then ruby = true
+		when "nott" then nott = true
+		when "out"	then
+			out = true
+			nott = true
+		else
+			$stderr.puts "tott: unrecognized option '#{option}'"
 		end
+	end
+
+	files.each do |name| begin
+		Treetopper.fail("file #{name} does not exist.") unless File.exists?(name)
+
+		# Converting into .treetop file
+		ttfile = name.slice(0, name.rindex(".") || name.length) + ".treetop"
+		output = Treetopper::Parser.parse_file(name)
+		unless out
+			File.open(ttfile, "w") do |file|
+				file.write output
+			end
+		else
+			puts output
+		end
+
+		# Converting into Ruy code
+		if ruby and not Shell.run("tt", ttfile)
+			$stderr.puts "tott: error ocurred while running 'tt' program"
+			ruby = false
+		end
+
+		File.unlink(ttfile) if nott and not out
 	rescue Treetopper::Error => e
 		$stderr.puts "tott: #{e.to_s}"
 	end end
