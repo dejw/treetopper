@@ -2,8 +2,6 @@
 	Defines grammar accepted by Treetopper.
 =end
 
-require "lib/extensions"
-
 module Treetopper
 	class Production
 		PREFIX = '    '

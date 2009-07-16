@@ -1,27 +1,21 @@
 #!/usr/bin/env ruby
 
-require "lib/treetopper"
-
 =begin rdoc
-	Todo:
-		* Wildcard in paths (e.g. /path/to/files/* )
-		* Special directives:
-			* Inlining.
-			* Including.
-		* Removal of same productions.
-		* Write it using TreeTop itself.
-
   Usage: tott file [, file ...] [options]
   Converts list of files from EBNF grammar format to Treetop format.
 
   Available options are:
-    --nott    Deletes .treetop files after conversion. (Useful with --rb option)
-    --ruby    Converts generated .treetop files into Ruby source using tt.
-    --out     Prints the output to the standard output rather than a file.
-    --help    Prints this help message.
+     --nott    Deletes .treetop files after conversion (useful with --ruby).
+     --ruby    Converts generated .treetop files into Ruby source using tt.
+      --out    Prints the output to the standard output rather than a file.
+  --version    Prints the current version number.
+     --help    Prints this help message.
 =end
 
-require "open3"
+require 'rubygems'
+require 'treetopper'
+require 'open3'
+
 include Open3
 
 module Shell
@@ -43,51 +37,52 @@ module Treetopper
   end
 end
 
-if $0 == __FILE__
-	ruby = false
-	nott = false
-	out = false
-	o = false
+ruby = false
+nott = false
+out = false
+o = false
 
-	options, files = ARGV.partition {|item| item.start_with?("--") or item.start_with?("--") }
-	puts Treetopper.help if files.length == 0
-	options.map {|option| option.slice(2...option.length) }.each do |option|
-		case option
-		when "help"
-			puts Treetopper.help
-			exit(0)
-		when "ruby" then ruby = true
-		when "nott" then nott = true
-		when "out"	then
-			out = true
-			nott = true
-		else
-			$stderr.puts "tott: unrecognized option '#{option}'"
+options, files = ARGV.partition {|item| item.start_with?("--") or item.start_with?("--") }
+options.map {|option| option.slice(2...option.length) }.each do |option|
+	case option
+	when "help"
+		puts Treetopper.help
+		exit
+	when "version"
+		puts "tott " + Treetopper::Version::STRING + " Copyright (c) 2009 Dawid Fatyga"
+		exit
+	when "ruby" then ruby = true
+	when "nott" then nott = true
+	when "out"	then
+		out = true
+		nott = true
+	else
+		$stderr.puts "tott: unrecognized option '#{option}'"
+	end
+end
+
+puts Treetopper.help if files.length == 0
+files.each do |name| begin
+	Treetopper.fail("file #{name} does not exist.") unless File.exists?(name)
+
+	# Converting into .treetop file
+	ttfile = name.slice(0, name.rindex(".") || name.length) + ".treetop"
+	output = Treetopper::Parser.parse_file(name)
+	unless out
+		File.open(ttfile, "w") do |file|
+			file.write output
 		end
+	else
+		puts output
 	end
 
-	files.each do |name| begin
-		Treetopper.fail("file #{name} does not exist.") unless File.exists?(name)
+	# Converting into Ruy code
+	if ruby and not Shell.run("tt", ttfile)
+		$stderr.puts "tott: error ocurred while running 'tt' program"
+		ruby = false
+	end
 
-		# Converting into .treetop file
-		ttfile = name.slice(0, name.rindex(".") || name.length) + ".treetop"
-		output = Treetopper::Parser.parse_file(name)
-		unless out
-			File.open(ttfile, "w") do |file|
-				file.write output
-			end
-		else
-			puts output
-		end
-
-		# Converting into Ruy code
-		if ruby and not Shell.run("tt", ttfile)
-			$stderr.puts "tott: error ocurred while running 'tt' program"
-			ruby = false
-		end
-
-		File.unlink(ttfile) if nott and not out
-	rescue Treetopper::Error => e
-		$stderr.puts "tott: #{e.to_s}"
-	end end
-end
+	File.unlink(ttfile) if nott and not out
+rescue Treetopper::Error => e
+	$stderr.puts "tott: #{e.to_s}"
+end end
